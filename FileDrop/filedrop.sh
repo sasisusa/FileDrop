@@ -474,7 +474,7 @@ DownAndUp() {
 	fi
 	
 	#-> create temporary folder
-	local TMP_STORE_DIR=$(mktemp --directory "${TMP_DIR}/Temp_f_d_XXXXXXXXX")
+	local TMP_STORE_DIR="$(mktemp --directory "${TMP_DIR}/Temp_f_d_XXXXXXXXX")"
 	local MKTEMP_TMPDIR_EXIT_STATUS=$?
 	if [ $MKTEMP_TMPDIR_EXIT_STATUS -ne 0 ]; then
 		ErrorEcho "Error in DownAndUp: mktemp exit code ${MKTEMP_TMPDIR_EXIT_STATUS}."
@@ -575,7 +575,7 @@ ListStorage() {
 		LS_RECUSIVE="true"
 	fi
 
-	if [ -z $ARG_DATAPATH ] || [ $ARG_DATAPATH = "." ] || [ $ARG_DATAPATH = "/" ] || [ $ARG_DATAPATH = "./" ]; then
+	if [ -z "$ARG_DATAPATH" ] || [ "$ARG_DATAPATH" = "." ] || [ "$ARG_DATAPATH" = "/" ] || [ "$ARG_DATAPATH" = "./" ]; then
 		LS_DSTDIR=""
 	else
 		LS_DSTDIR="$(ModPathForDrop "$ARG_DATAPATH")"
@@ -586,7 +586,7 @@ ListStorage() {
 		fi
 	fi
 
-	local TMP_FILE=$(mktemp "${TMP_DIR}/Temp_f_d_LS.XXXXXXXXX")
+	local TMP_FILE="$(mktemp "${TMP_DIR}/Temp_f_d_LS.XXXXXXXXX")"
 	local MKTEMP_TMP_EXIT_STATUS=$?
 	if [ $MKTEMP_TMP_EXIT_STATUS -ne 0 ]; then
 		if [ -e "$TMP_FILE" ]; then
@@ -614,10 +614,6 @@ ListStorage() {
 	PATH_DIS=$(sed "s/{/\n/g" "${TMP_FILE}" | grep ".tag" | awk -F"\": |\", " "{ print \$2 \$6}" \
 		| sed -e "s/\"/[/" -e "s/\"/] /")	
 
-	#local ENTRY=""
-	#for ENTRY in ${PATH_DIS}; do
-	#	echo "$ENTRY"
-	#done
 	echo "$PATH_DIS"
 
 	rm --force "${TMP_FILE}"
@@ -656,7 +652,7 @@ MoveFile() {
 
 #-> display used and allocated space in bytes
 SpaceUsage() {
-	local TMP_FILE=$(mktemp "${TMP_DIR}/Temp_f_d_SU.XXXXXXXXX")
+	local TMP_FILE="$(mktemp "${TMP_DIR}/Temp_f_d_SU.XXXXXXXXX")"
 	local MKTEMP_TMP_EXIT_STATUS=$?
 	if [ $MKTEMP_TMP_EXIT_STATUS -ne 0 ]; then
 		if [ -e "$TMP_FILE" ]; then
@@ -732,7 +728,6 @@ esac
 
 exit 0
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 
 
 
