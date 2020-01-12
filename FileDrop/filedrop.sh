@@ -14,7 +14,7 @@ USE_EDITOR="xed -w +"
 #-> for option -f: folder for cache, file will be temporary stored
 TMP_DIR="/tmp"
 #-> default file with access token
-DEFAULT_ACCESS_TOKEN_FILE="$HOME/.textdrop/access_token.txt"
+DEFAULT_ACCESS_TOKEN_FILE="$HOME/.filedrop/access_token_plain.txt"
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -86,7 +86,7 @@ PrintHelp() {
 echo "\
 filedrop $FILEDROP_VERSION
 
-Usage: filedrop [option ...] [FILE] ...
+Usage: filedrop [options ...] [FILE] ...
 
 If no access token is specified (-a, -t), attempt to use the file:
 ${DEFAULT_ACCESS_TOKEN_FILE}
@@ -104,6 +104,7 @@ Options:
 -l, --ls PATH             List folders and files
 --lrec, --lrecusive PATH  List folders and files recursive
 --mv, --move SRC DST      Move or rename a file or folder
+--space                   Display used and allocated space in bytes
 
 -a, --token TOKEN         Dropbox access token
 -t, --tokenfile FILE      File with the dropbox access token
@@ -263,6 +264,9 @@ while [ $# -gt 0 ]; do
 		CheckArgAvailable $# "--mv (--move), second argument"
 		TASKARG_TWO="$1"
 		TASK_TODO="move_file"
+		;;
+	--space)
+		TASK_TODO="space_usage"
 		;;
 	-h|--help)
 		PrintHelp
@@ -561,7 +565,7 @@ DeleteStuff() {
 	fi
 }
 
-#-> lists files and folers inside path ($1, ARG_DATAPATH)
+#-> display/list files and folers inside path ($1, ARG_DATAPATH)
 ListStorage() {
 	local ARG_DATAPATH="$1"
 	local LS_DSTDIR=""
@@ -582,13 +586,13 @@ ListStorage() {
 		fi
 	fi
 
-	local TMP_FILE=$(mktemp "${TMP_DIR}/Temp_f_d_LRdir.XXXXXXXXX")
+	local TMP_FILE=$(mktemp "${TMP_DIR}/Temp_f_d_LS.XXXXXXXXX")
 	local MKTEMP_TMP_EXIT_STATUS=$?
 	if [ $MKTEMP_TMP_EXIT_STATUS -ne 0 ]; then
 		if [ -e "$TMP_FILE" ]; then
 			rm --force ${TMP_FILE}
 		fi
-		ErrorEcho "Error in ListRootdir: mktemp exit code ${MKTEMP_TMP_EXIT_STATUS}."
+		ErrorEcho "Error in ListStorage: mktemp exit code ${MKTEMP_TMP_EXIT_STATUS}."
 		exit 1
 	fi
 	trap "rm --force ${TMP_FILE}" 0 1 2 3	
@@ -600,10 +604,10 @@ ListStorage() {
 		--data "{\"path\": \"${LS_DSTDIR}\",\"recursive\": ${LS_RECUSIVE}, \"limit\": 2000}")
 	local CURL_DOWN_EXIT_STATUS=$?
 	if [ $CURL_DOWN_EXIT_STATUS -ne 0 ]; then
-		ErrorEcho "Error in ListRootdir: curl exit code ${CURL_DOWN_EXIT_STATUS}."
+		ErrorEcho "Error in ListStorage: curl exit code ${CURL_DOWN_EXIT_STATUS}."
 		exit 1
 	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
-		ErrorEcho "Error in ListRootdir: HTTP status code ${HTTP_STATUS_CODE}."
+		ErrorEcho "Error in ListStorage: HTTP status code ${HTTP_STATUS_CODE}."
 		exit 1
 	fi
 	local PATH_DIS=""
@@ -630,7 +634,7 @@ MoveFile() {
 	local MOD_FROM_PATH=$(ModPathForDrop "$ARG_DATAPATH")
 	local DROP_FILE_EXISTS=$(DropFileOrFolderExists "$MOD_FROM_PATH")
 	if [ "$DROP_FILE_EXISTS" != "true" ]; then
-		ErrorEcho "Error in GetFile: File ${ARG_DATAPATH} does not exist."
+		ErrorEcho "Error in MoveFile: File ${ARG_DATAPATH} does not exist."
 		exit 1
 	fi
 	local MOD_TO_DATAPATH=$(ModPathForDrop "$DSTPATH_MVTO")
@@ -642,14 +646,50 @@ MoveFile() {
 		--data "{\"from_path\": \"${MOD_FROM_PATH}\",\"to_path\": \"${MOD_TO_DATAPATH}\",\"allow_shared_folder\": false,\"autorename\": true}")
 	local CURL_MOVE_EXIT_STATUS=$?
 	if [ $CURL_MOVE_EXIT_STATUS -ne 0 ]; then
-		ErrorEcho "Error in GetFile: curl exit code ${CURL_MOVE_EXIT_STATUS}."
+		ErrorEcho "Error in MoveFile: curl exit code ${CURL_MOVE_EXIT_STATUS}."
 		exit 1
 	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
-		ErrorEcho "Error in GetFile: HTTP status code ${HTTP_STATUS_CODE}."
+		ErrorEcho "Error in MoveFile: HTTP status code ${HTTP_STATUS_CODE}."
 		exit 1
 	else
 		InfoEcho "${MOD_FROM_PATH} moved to ${MOD_TO_DATAPATH}."
 	fi
+}
+
+
+#-> display used and allocated space in bytes
+SpaceUsage() {
+	local TMP_FILE=$(mktemp "${TMP_DIR}/Temp_f_d_SU.XXXXXXXXX")
+	local MKTEMP_TMP_EXIT_STATUS=$?
+	if [ $MKTEMP_TMP_EXIT_STATUS -ne 0 ]; then
+		if [ -e "$TMP_FILE" ]; then
+			rm --force ${TMP_FILE}
+		fi
+		ErrorEcho "Error in SpaceUsage: mktemp exit code ${MKTEMP_TMP_EXIT_STATUS}."
+		exit 1
+	fi
+	trap "rm --force ${TMP_FILE}" 0 1 2 3	
+
+	local HTTP_STATUS_CODE=$(curl --silent --output "${TMP_FILE}" --write-out "%{http_code}" \
+		--request POST https://api.dropboxapi.com/2/users/get_space_usage \
+		--header "Authorization: Bearer ${ACCESS_TOKEN}")
+
+	local CURL_SPACE_EXIT_STATUS=$?
+	if [ $CURL_SPACE_EXIT_STATUS -ne 0 ]; then
+		ErrorEcho "Error in SpaceUsage: curl exit code ${CURL_SPACE_EXIT_STATUS}."
+		exit 1
+	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
+		ErrorEcho "Error in SpaceUsage: HTTP status code ${HTTP_STATUS_CODE}."
+		exit 1
+	fi
+
+	local PATH_DIS=""
+	PATH_DIS=$(sed "s/[,{]/\n/g" "${TMP_FILE}" | grep -E "used|allocated" | sed -e "s/[ \"]//" -e "s/[}\"]//g")
+	echo "Space usage (bytes):"
+	echo "$PATH_DIS"
+
+	rm --force ${TMP_FILE}
+	trap - 0 1 2 3
 }
 
 
@@ -684,6 +724,9 @@ case "$TASK_TODO" in
 	move_file)
 		MoveFile "$TASKARG_ONE" "$TASKARG_TWO"
 		;;
+	space_usage)
+		SpaceUsage
+		;;
 	*)
 		ErrorEcho "Error: should not get here."
 		exit 1
@@ -692,7 +735,6 @@ esac
 
 exit 0
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 
 
 
