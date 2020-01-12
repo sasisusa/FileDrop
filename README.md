@@ -19,31 +19,31 @@ Alpha (0.0.1)
 
 
 ## Examples
-* Display help and usage
+Display help and usage
 
-  ./filedrop.sh -h
+  `./filedrop.sh -h`
 
-* Show files and folder in top folder
+Show files and folder in top folder
 
-  ./filedrop.sh -a ACCESS_TOKEN --ls "/"
+  `./filedrop.sh -a ACCESS_TOKEN --ls "/"`
 
-* Show all files and folder (recusive), starting from top folder
+Show all files and folder (recusive), starting from top folder
 
-  ./filedrop.sh -a ACCESS_TOKEN --lrec "/"
+  `./filedrop.sh -a ACCESS_TOKEN --lrec "/"`
 
-* Download the complete folder "my/src/foler" as a zip file into "./dropbox-app-data"
+Download the complete folder "my/src/foler" as a zip file into "./dropbox-app-data"
 
-  ./filedrop.sh -a ACCESS_TOKEN -z "my/src/foler" "./dropbox-app-data"
+  `./filedrop.sh -a ACCESS_TOKEN -z "my/src/foler" "./dropbox-app-data"`
   
-* Download the file "my/src/foler/file.txt" into "./dropbox-app-files"
+Download the file "my/src/foler/file.txt" into "./dropbox-app-files"
 
-  ./filedrop.sh -a ACCESS_TOKEN -g "/my/src/foler/file.txt" "./dropbox-app-files"
+  `./filedrop.sh -a ACCESS_TOKEN -g "/my/src/foler/file.txt" "./dropbox-app-files"`
   
-* Upload the file "./dropbox-app-files/file.txt" into "/files/infos"
+Upload the file "./dropbox-app-files/file.txt" into "/files/infos"
 
-  ./filedrop.sh -a ACCESS_TOKEN -u "./dropbox-app-files/file.txt" /files/infos
+  `./filedrop.sh -a ACCESS_TOKEN -u "./dropbox-app-files/file.txt" /files/infos`
 
-* Modify/process(/create) a file "file.txt" at the top folder in an editor (requirement: editor has to block the scipt)
+Modify/process(/create) a file "file.txt" at the top folder in an editor (requirement: editor has to block the scipt)
 
-  ./filedrop.sh -a ACCESS_TOKEN -e nano -f file.txt
+  `./filedrop.sh -a ACCESS_TOKEN -e nano -f file.txt`
 
