@@ -632,7 +632,7 @@ MoveFile() {
 	fi
 	local MOD_TO_DATAPATH="$(ModPathForDrop "$DSTPATH_MVTO")"
 
-	local HTTP_STATUS_CODE=$(curl --silent --output "${DSTFILEPATH_DOWN}" --write-out "%{http_code}" \
+	local HTTP_STATUS_CODE=$(curl --silent --output "/dev/null" --write-out "%{http_code}" \
 		--request POST https://api.dropboxapi.com/2/files/move_v2 \
 		--header "Authorization: Bearer ${ACCESS_TOKEN}" \
 		--header "Content-Type: application/json" \
