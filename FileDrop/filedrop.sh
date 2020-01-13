@@ -14,7 +14,7 @@ USE_EDITOR="xed -w +"
 #-> for option -f: folder for cache, file will be temporary stored
 TMP_DIR="/tmp"
 #-> default file with access token
-DEFAULT_ACCESS_TOKEN_FILE="./pvt/access_token_plain.txt" #"$HOME/.filedrop/access_token_plain.txt"
+DEFAULT_ACCESS_TOKEN_FILE="$HOME/.filedrop/access_token_plain.txt"
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -338,16 +338,16 @@ ModPathForDrop() {
 	local MOD_DROPPATH="$1"
 
 	#-> not '.' at the beginning
-	local FIRST_CHAR=$(echo "${MOD_DROPPATH}" | sed "s/\(^.\).*/\1/")
+	local FIRST_CHAR="$(echo "${MOD_DROPPATH}" | sed "s/\(^.\).*/\1/")"
 	if [ "${FIRST_CHAR}" = "." ] ; then
-		MOD_DROPPATH=$(echo "${MOD_DROPPATH}" | sed "s/^.\{1\}//")
+		MOD_DROPPATH="$(echo "${MOD_DROPPATH}" | sed "s/^.\{1\}//")"
 	fi
 	#-> need a '/' at the beginning, replace // with /
-	MOD_DROPPATH=$(echo "/${MOD_DROPPATH}" | sed "s,//,/,g")
+	MOD_DROPPATH="$(echo "/${MOD_DROPPATH}" | sed "s,//,/,g")"
 	#-> check if the last sign is a '/', if so remove it
- 	local LAST_CHAR=$(echo "${MOD_DROPPATH}" | sed -e "s/.*\(.\)$/\1/")
+ 	local LAST_CHAR="$(echo "${MOD_DROPPATH}" | sed -e "s/.*\(.\)$/\1/")"
 	if [ "${LAST_CHAR}" = "/" ] && [ ${#MOD_DROPPATH} -ne 1 ] ; then
-		MOD_DROPPATH=$(echo "${MOD_DROPPATH}" | sed "s/.$//")
+		MOD_DROPPATH="$(echo "${MOD_DROPPATH}" | sed "s/.$//")"
 	fi
 
 	echo "$MOD_DROPPATH"
@@ -367,7 +367,7 @@ DownloadZip() {
 	fi
 	local ZIPFILENAME="$(basename "${ARG_DATAPATH}")"
 	local DSTFILEPATH_ZIP="${DSTPATH_ZIP}/${ZIPFILENAME}.zip"
-	DSTFILEPATH_ZIP=$(echo "${DSTFILEPATH_ZIP}" | sed -e "s,//,/,g" -e "s,//,/,g") # for convenience two times: replace // with /
+	DSTFILEPATH_ZIP="$(echo "${DSTFILEPATH_ZIP}" | sed -e "s,//,/,g" -e "s,//,/,g")" # for convenience two times: replace // with /
 
 	local HTTP_STATUS_CODE=$(curl --silent --output "${DSTFILEPATH_ZIP}" --write-out "%{http_code}" \
 		--request POST https://content.dropboxapi.com/2/files/download_zip \
@@ -394,7 +394,7 @@ UploadFile() {
 	local MOD_UPLOAD_DSTPATH="$(ModPathForDrop "$UPLOAD_DSTPATH")"
 	local FILENAME_UPLOAD="$(basename "$UPLOAD_DATAFILE")"
 	local DSTFILEPATH_UP="${MOD_UPLOAD_DSTPATH}/${FILENAME_UPLOAD}"
-	DSTFILEPATH_UP=$(echo "$DSTFILEPATH_UP" | sed "s,//,/,g") # replace // with /
+	DSTFILEPATH_UP="$(echo "$DSTFILEPATH_UP" | sed "s,//,/,g")" # replace // with /
 
 	local FILESIZE_BYTES=$(stat "$UPLOAD_DATAFILE" -c %s)
 	if [ $FILESIZE_BYTES -gt 150000000 ]; then # 150 MB = 157286400 bytes ? 150000000 bytes
@@ -433,7 +433,7 @@ GetFile() {
 	fi
 	local FILENAME_DOWNLOAD="$(basename "$ARG_DATAPATH")"
 	local DSTFILEPATH_DOWN="${DSTPATH_GET}/${FILENAME_DOWNLOAD}"
-	DSTFILEPATH_DOWN=$(echo "$DSTFILEPATH_DOWN" | sed "s,//,/,g") # replace // with /
+	DSTFILEPATH_DOWN="$(echo "$DSTFILEPATH_DOWN" | sed "s,//,/,g")" # replace // with /
 
 	local HTTP_STATUS_CODE=$(curl --silent --output "${DSTFILEPATH_DOWN}" --write-out "%{http_code}" \
 		--request POST https://content.dropboxapi.com/2/files/download \
@@ -611,8 +611,8 @@ ListStorage() {
 		exit 1
 	fi
 	local PATH_DIS=""
-	PATH_DIS=$(sed "s/{/\n/g" "${TMP_FILE}" | grep ".tag" | awk -F"\": |\", " "{ print \$2 \$6}" \
-		| sed -e "s/\"/[/" -e "s/\"/] /")	
+	PATH_DIS="$(sed "s/{/\n/g" "${TMP_FILE}" | grep ".tag" | awk -F"\": |\", " "{ print \$2 \$8}" \
+		| sed -e "s/\"/[/" -e "s/\"/] /")"	
 
 	echo "$PATH_DIS"
 
@@ -677,7 +677,7 @@ SpaceUsage() {
 	fi
 
 	local PATH_DIS=""
-	PATH_DIS=$(sed "s/[,{]/\n/g" "${TMP_FILE}" | grep -E "used|allocated" | sed -e "s/[ \"]//" -e "s/[}\"]//g")
+	PATH_DIS="$(sed "s/[,{]/\n/g" "${TMP_FILE}" | grep -E "used|allocated" | sed -e "s/[ \"]//" -e "s/[}\"]//g")"
 	echo "Space usage (bytes):"
 	echo "$PATH_DIS"
 
