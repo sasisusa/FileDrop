@@ -103,14 +103,20 @@ Options:
 -z, --zip DIRPATH DST     Download a complete folder as a zip-file
 -l, --ls PATH             List folders and files
 --lrec, --lrecusive PATH  List folders and files recursive
---mv, --move SRC DST      Move or rename a file or folder
+--mv, --move SRC DST      Move or rename a file or folder (see *)
 --space                   Display used and allocated space in bytes
+--cp, --copy SRC DST      Copy a file or folder (see *)
 
 -a, --token TOKEN         Dropbox access token
 -t, --tokenfile FILE      File with the dropbox access token
 
 -h, --help                Display help and exit
 --version                 Show version and exit
+
+(*):
+To move/copy a file into another folder, it is necessary to write the filename
+to the desired folder, e.g. \"from/src/dir/file.ext\" \"to/dst/dir/file.ext\".
+
 
 Examples:
 
@@ -122,9 +128,9 @@ filedrop -l /                List files in top directory
 filedrop -z \"/info\" \"./\"     Download the complete folder \"/info\" as a 
                              zip-file into the current folder
 filedrop --lsrec /           List all folders and files from everywhere
-
-$ remdrop.sh -u \"./info/std.txt\" \"tee/cup\"     
-                           uploads std.txt into the folder tee/cup
+filedrop --mv /from/a.txt /to/a.txt    Move /from/a.txt to /to/a.txt
+filedrop --cp src/a.txt dst/b.txt      Copy src/a.txt to dst/b.txt (renamed)
+filedrop -u ./info/std.txt tee/cup     Uploads std.txt into the folder tee/cup
 "
 }
 
@@ -265,6 +271,16 @@ while [ $# -gt 0 ]; do
 		TASKARG_TWO="$1"
 		TASK_TODO="move_file"
 		;;
+	--cp|--copy)
+		shift
+		CheckTaskAlreadySet "--cp (--copy)"
+		CheckArgAvailable $# "--cp (--copy)"
+		TASKARG_ONE="$1"	
+		shift
+		CheckArgAvailable $# "--cp (--copy), second argument"
+		TASKARG_TWO="$1"
+		TASK_TODO="copy_stuff"
+		;;
 	--space)
 		TASK_TODO="space_usage"
 		;;
@@ -303,12 +319,68 @@ fi
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-
 #/////////////////////////////////////////////////
-# functions for main switch
+# useful functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-#-> check if a file or folder ($1, DROPPATH_TO_CHECK) exists, return "true", "false" or "error"
+
+#-> check if path leads to a file or folder ($1, DROPPATH_TO_CHECK), return "file", "folder", "none" or "error"
+DropIsFileOrFolder() {
+	local DROPPATH_TO_CHECK="$1"
+
+	local TMP_FILE="$(mktemp "${TMP_DIR}/Temp_f_d_LS.XXXXXXXXX")"
+	local MKTEMP_TMP_EXIT_STATUS=$?
+	if [ $MKTEMP_TMP_EXIT_STATUS -ne 0 ]; then
+		if [ -e "$TMP_FILE" ]; then
+			rm --force ${TMP_FILE}
+		fi
+		ErrorEcho "Error in DropIsFileOrFolder: mktemp exit code ${MKTEMP_TMP_EXIT_STATUS}."
+		exit 1
+	fi
+	trap "rm --force ${TMP_FILE}" 0 1 2 3	
+
+	local HTTP_STATUS_CODE=$(curl --silent --output "${TMP_FILE}" --write-out "%{http_code}" \
+		--request POST https://api.dropboxapi.com/2/files/get_metadata \
+		--header "Authorization: Bearer ${ACCESS_TOKEN}" \
+		--header "Content-Type: application/json" \
+		--data "{\"path\": \"${DROPPATH_TO_CHECK}\"}")
+
+	local CURL_EXIST_EXIT_STATUS=$?
+	if [ $CURL_EXIST_EXIT_STATUS -ne 0 ]; then
+		rm --force "${TMP_FILE}"
+		trap - 0 1 2 3
+		ErrorEcho "Error in DropFileOrFolderExists: curl exit code ${CURL_EXIST_EXIT_STATUS}."
+		echo "error"
+		return 1
+	elif [ $HTTP_STATUS_CODE -eq 409 ]; then
+		rm --force "${TMP_FILE}"
+		trap - 0 1 2 3
+		echo "none"
+		return 0
+	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
+		rm --force "${TMP_FILE}"
+		trap - 0 1 2 3
+		ErrorEcho "Error in DropFileOrFolderExists: HTTP status code ${HTTP_STATUS_CODE}."
+		echo "error"
+		return 1
+	fi
+
+	local PATH_TYP=""
+	PATH_TYP="$(sed "s/{/\n/g" "${TMP_FILE}" | grep ".tag" | awk -F": \"|\", " "{ print \$2}")"	
+
+	rm --force "${TMP_FILE}"
+	trap - 0 1 2 3
+
+	if [ "$PATH_TYP" = "file" ] || [ "$PATH_TYP" = "folder" ]; then
+		echo "$PATH_TYP"
+	else
+		ErrorEcho "Error in DropFileOrFolderExists: unknown tag ${PATH_TYP}."
+		echo "error"
+	fi
+}
+
+
+#-> check if a file or folder exists ($1, DROPPATH_TO_CHECK), return "true", "false" or "error"
 DropFileOrFolderExists() {
 	local DROPPATH_TO_CHECK="$1"
 
@@ -353,6 +425,12 @@ ModPathForDrop() {
 	echo "$MOD_DROPPATH"
 }
 
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+#/////////////////////////////////////////////////
+# functions for main switch
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 #-> download a folder as a zip-file ($1 -> $2, ARG_DATAPATH -> DSTPATH_ZIP)
@@ -636,7 +714,7 @@ MoveFile() {
 		--request POST https://api.dropboxapi.com/2/files/move_v2 \
 		--header "Authorization: Bearer ${ACCESS_TOKEN}" \
 		--header "Content-Type: application/json" \
-		--data "{\"from_path\": \"${MOD_FROM_PATH}\",\"to_path\": \"${MOD_TO_DATAPATH}\",\"allow_shared_folder\": false,\"autorename\": true}")
+		--data "{\"from_path\": \"${MOD_FROM_PATH}\",\"to_path\": \"${MOD_TO_DATAPATH}\",\"autorename\": true}")
 	local CURL_MOVE_EXIT_STATUS=$?
 	if [ $CURL_MOVE_EXIT_STATUS -ne 0 ]; then
 		ErrorEcho "Error in MoveFile: curl exit code ${CURL_MOVE_EXIT_STATUS}."
@@ -686,6 +764,36 @@ SpaceUsage() {
 }
 
 
+#-> copy file or folder ($1 -> $2, ARG_DATAPATH -> DSTPATH_CPTO)
+CopyStuff() {
+	local ARG_DATAPATH="$1"
+	local DSTPATH_CPTO="$2"
+	local MOD_FROM_PATH="$(ModPathForDrop "$ARG_DATAPATH")"
+	local DROP_FILE_EXISTS=$(DropFileOrFolderExists "$MOD_FROM_PATH")
+	if [ "$DROP_FILE_EXISTS" != "true" ]; then
+		ErrorEcho "Error in MoveFile: File ${ARG_DATAPATH} does not exist."
+		exit 1
+	fi
+	local MOD_TO_DATAPATH="$(ModPathForDrop "$DSTPATH_CPTO")"
+
+	local HTTP_STATUS_CODE=$(curl --silent --output "/dev/null" --write-out "%{http_code}" \
+		--request POST https://api.dropboxapi.com/2/files/copy_v2 \
+		--header "Authorization: Bearer ${ACCESS_TOKEN}" \
+		--header "Content-Type: application/json" \
+		--data "{\"from_path\": \"${MOD_FROM_PATH}\",\"to_path\": \"${MOD_TO_DATAPATH}\",\"autorename\": false}")
+	local CURL_COPY_EXIT_STATUS=$?
+	if [ $CURL_COPY_EXIT_STATUS -ne 0 ]; then
+		ErrorEcho "Error in CopyStuff: curl exit code ${CURL_COPY_EXIT_STATUS}."
+		exit 1
+	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
+		ErrorEcho "Error in CopyStuff: HTTP status code ${HTTP_STATUS_CODE}."
+		exit 1
+	else
+		InfoEcho "${MOD_FROM_PATH} copied to ${MOD_TO_DATAPATH}."
+	fi
+}
+
+
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -719,6 +827,9 @@ case "$TASK_TODO" in
 		;;
 	space_usage)
 		SpaceUsage
+		;;
+	copy_stuff)
+		CopyStuff "$TASKARG_ONE" "$TASKARG_TWO"
 		;;
 	*)
 		ErrorEcho "Error: should not get here."
