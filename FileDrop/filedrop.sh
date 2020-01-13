@@ -14,7 +14,7 @@ USE_EDITOR="xed -w +"
 #-> for option -f: folder for cache, file will be temporary stored
 TMP_DIR="/tmp"
 #-> default file with access token
-DEFAULT_ACCESS_TOKEN_FILE="$HOME/.filedrop/access_token_plain.txt"
+DEFAULT_ACCESS_TOKEN_FILE="./pvt/access_token_plain.txt" #"$HOME/.filedrop/access_token_plain.txt"
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -349,7 +349,7 @@ DropIsFileOrFolder() {
 	if [ $CURL_EXIST_EXIT_STATUS -ne 0 ]; then
 		rm --force "${TMP_FILE}"
 		trap - 0 1 2 3
-		ErrorEcho "Error in DropFileOrFolderExists: curl exit code ${CURL_EXIST_EXIT_STATUS}."
+		ErrorEcho "Error in DropIsFileOrFolder: curl exit code ${CURL_EXIST_EXIT_STATUS}."
 		echo "error"
 		return 1
 	elif [ $HTTP_STATUS_CODE -eq 409 ]; then
@@ -360,7 +360,7 @@ DropIsFileOrFolder() {
 	elif [ $HTTP_STATUS_CODE -ne 200 ]; then
 		rm --force "${TMP_FILE}"
 		trap - 0 1 2 3
-		ErrorEcho "Error in DropFileOrFolderExists: HTTP status code ${HTTP_STATUS_CODE}."
+		ErrorEcho "Error in DropIsFileOrFolder: HTTP status code ${HTTP_STATUS_CODE}."
 		echo "error"
 		return 1
 	fi
@@ -374,7 +374,7 @@ DropIsFileOrFolder() {
 	if [ "$PATH_TYP" = "file" ] || [ "$PATH_TYP" = "folder" ]; then
 		echo "$PATH_TYP"
 	else
-		ErrorEcho "Error in DropFileOrFolderExists: unknown tag ${PATH_TYP}."
+		ErrorEcho "Error in DropIsFileOrFolder: unknown tag ${PATH_TYP}."
 		echo "error"
 	fi
 }
@@ -771,7 +771,7 @@ CopyStuff() {
 	local MOD_FROM_PATH="$(ModPathForDrop "$ARG_DATAPATH")"
 	local DROP_FILE_EXISTS=$(DropFileOrFolderExists "$MOD_FROM_PATH")
 	if [ "$DROP_FILE_EXISTS" != "true" ]; then
-		ErrorEcho "Error in MoveFile: File ${ARG_DATAPATH} does not exist."
+		ErrorEcho "Error in CopyStuff: File ${ARG_DATAPATH} does not exist."
 		exit 1
 	fi
 	local MOD_TO_DATAPATH="$(ModPathForDrop "$DSTPATH_CPTO")"
