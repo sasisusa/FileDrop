@@ -11,6 +11,7 @@ USE_EDITOR="xed -w +"
 #/////////////////////////////////////////////////
 # user/system settings
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#-> folder temporary stored data
 #-> for option -f: folder for cache, file will be temporary stored
 TMP_DIR="/tmp"
 #-> default file with access token
@@ -127,7 +128,7 @@ filedrop --del tea.txt       Delete the file \"tea.txt\"
 filedrop -l /                List files in top directory
 filedrop -z \"/info\" \"./\"     Download the complete folder \"/info\" as a 
                              zip-file into the current folder
-filedrop --lsrec /           List all folders and files from everywhere
+filedrop --lrec /           List all folders and files from everywhere
 filedrop --mv /from/a.txt /to/a.txt    Move /from/a.txt to /to/a.txt
 filedrop --cp src/a.txt dst/b.txt      Copy src/a.txt to dst/b.txt (renamed)
 filedrop -u ./info/std.txt tee/cup     Uploads std.txt into the folder tee/cup
