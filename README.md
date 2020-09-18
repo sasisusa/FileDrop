@@ -15,7 +15,7 @@ A script (sh) to handle files and folders from a [Dropbox account app](https://w
 
 
 ## Stage of development (Version)
-Alpha (0.0.1)
+Alpha (0.0.3)
 
 
 ## Examples
